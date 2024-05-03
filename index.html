@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equarectangular img to net</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+        #controls {
+            margin-bottom: 10px;
+        }
+        #input-controls {
+            margin-bottom: 10px;
+        }
+        .parent {
+            display: grid;
+            grid-template-columns: 9fr 4fr 9fr repeat(2, 1fr);
+            grid-column-gap: 10px;
+            grid-row-gap: 0px;
+        }
+
+        .header { grid-area: 1 / 1 / 2 / 4; }
+        .input { grid-area: 2 / 1 / 3 / 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: start;
+            align-items: center;
+        }
+        .controls { grid-area: 2 / 2 / 3 / 3; 
+            display: flex;
+            flex-direction: column;
+            justify-content: start;
+            align-items: start;}
+        .output { grid-area: 2 / 3 / 3 / 4;
+            display: flex;
+            flex-direction: column;
+            justify-content: start;
+            align-items: start; }
+
+        .row{
+            display: flex;
+            flex-direction: row;
+            margin-bottom: 5px;;
+        }
+        #outputImage {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        #inputImage {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+
+        #outputCanvas {
+            display: none;
+        }
+
+        .spinner {
+            border: 16px solid #f3f3f3; /* Light grey */
+            border-top: 16px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+            display: none; /* Hide it initially */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Equarec2Net</h1>
+        <p>Convert equirectangular images to a net that you can cut, fold, and make into a little physical thing!</p>
+    </div>
+    <div class="parent">
+        <div class="input">
+            <div id = "input-controls">
+                <input type="file" id="textureUpload" accept="image/*">
+            </div>
+            <div id="inputSpinner" class="spinner"></div>
+            <img id="inputImage" src="" alt="Input Image" style="display: none;">
+        </div>
+        <div class="controls" id="convert-controls">
+            <row>
+                <input type="radio" id="cube" name="reference" value="cube" checked>
+                <label for="cube">Cube</label>
+            </row>
+            <row>
+                <input type="radio" id="polygon" name="reference" value="polygon">
+                <label for="polygon">Polygon</label>
+            </row>
+            <button id="generate">Generate</button>
+        </div>
+        <div class="output">
+            <div id="outputSpinner" class="spinner"></div>
+            <img id="outputImage" src="./cube/island0.png" alt="Output Image">
+        </div>
+        <canvas id="outputCanvas" ></canvas>
+
+    <script>
+        const textureUpload = document.getElementById('textureUpload');
+        const outputCanvas = document.getElementById('outputCanvas');
+        const ctx = outputCanvas.getContext('2d',{ willReadFrequently: true });
+        const inspinner = document.getElementById('inputSpinner');
+        const outspinner = document.getElementById('outputSpinner');
+
+        const inputImgTag = document.getElementById('inputImage');
+        const outputImgTag = document.getElementById('outputImage');
+
+
+
+
+
+        textureUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                inspinner.style.display = 'block';
+
+                const textureImg = new Image();
+                textureImg.onload = function() {
+                    inputImgTag.src = textureImg.src;
+                    // show the input image
+                    inputImgTag.style.display = 'block';
+                    
+
+                    // Render the uploaded image to the canvas to extract its pixel data
+                    ctx.canvas.width = textureImg.width;
+                    ctx.canvas.height = textureImg.height;
+                    ctx.drawImage(textureImg, 0, 0);
+                    const textureData = ctx.getImageData(0, 0, textureImg.width, textureImg.height);
+                    // attach the texture data to the generate button
+                    document.getElementById('generate').onclick = function(){
+                        console.log('Generate button clicked');
+                        loadReferenceImage(textureData);
+                    }
+                    inspinner.style.display = 'none';
+                };
+                textureImg.src = e.target.result;
+
+            };
+            reader.readAsDataURL(file);
+        });
+
+
+        function loadReferenceImage(textureData) {
+            outspinner.style.display = 'block';
+            outputImgTag.style.display = 'none';
+
+            const referenceImage = new Image();
+            referenceImage.onload = function() {
+                outputCanvas.width = referenceImage.width;
+                outputCanvas.height = referenceImage.height;
+                // outputCanvas.width = 500;
+                // outputCanvas.height = 1000;
+                
+                ctx.drawImage(referenceImage, 0, 0);
+                const refImageData = ctx.getImageData(0, 0, referenceImage.width, referenceImage.height);
+                const outputImageData = ctx.createImageData(referenceImage.width, referenceImage.height);
+
+                // Maximum coordinates for the mapping
+                const mapWidth = 4096;
+                const mapHeight = 4096;
+
+                // Process each pixel
+                for (let i = 0; i < refImageData.data.length; i += 4) {
+                    let r = refImageData.data[i]; // Red channel
+                    let g = refImageData.data[i + 1]; // Green channel
+                    let b = refImageData.data[i + 2]; // Blue channel
+
+                    const highBitsX = r >> 4; // Top 4 bits of red channel
+                    const highBitsY = r & 0x0F; // Lower 4 bits of red channel
+                    const lowBitsX = g; // Entire green channel
+                    const lowBitsY = b; // Entire blue channel
+
+                    const decodedY = (highBitsX << 8) | lowBitsX; // Combine high and low bits for x
+                    const decodedX = (highBitsY << 8) | lowBitsY; // Combine high and low bits for y
+                    
+                    // Normalize coordinates
+                    const normX = decodedX / mapWidth;
+                    const normY = decodedY / mapHeight;
+
+                    // Scale normalized coordinates to texture dimensions
+                    const textureX = Math.floor(normX * textureData.width);
+                    const textureY = Math.floor(normY * textureData.height);
+
+                    // Ensure texture coordinates are within the bounds
+                    if (textureX < textureData.width && textureY < textureData.height) {
+                        const index = (textureY * textureData.width + textureX) * 4;
+                        outputImageData.data[i] = textureData.data[index]; // Red
+                        outputImageData.data[i + 1] = textureData.data[index + 1]; // Green
+                        outputImageData.data[i + 2] = textureData.data[index + 2]; // Blue
+                        outputImageData.data[i + 3] = 255; // Alpha (fully opaque)
+                    } else {
+                        outputImageData.data[i + 3] = 0; // Set pixel to transparent if out of bounds
+                    }
+                }
+
+                
+                // // Draw the processed image
+                ctx.putImageData(outputImageData, 0, 0);
+                
+                // set the output image to the processed image
+                outputImgTag.src = outputCanvas.toDataURL();
+                outputImgTag.style.display = 'block';
+                outspinner.style.display = 'none';
+
+            };
+
+            // Set the reference image source based on the selected radio button
+            const cubeRadio = document.getElementById('cube');
+            const polygonRadio = document.getElementById('polygon');
+
+            if (cubeRadio.checked) {
+                referenceImage.src = './cube/island0.png'; // Ensure the correct path
+            } else if (polygonRadio.checked) {
+                referenceImage.src = './polygon/island0.png'; // Ensure the correct path
+            }
+        }
+
+
+    </script>
+</body>
+</html>
