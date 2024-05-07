@@ -84,6 +84,71 @@
             100% { transform: rotate(360deg); }
         }
     </style>
+
+<style type="text/css">
+    path {
+        fill: none;
+        stroke-linecap: butt;
+        stroke-linejoin: bevel;
+        stroke-dasharray: none;
+    }
+    path.outer {
+        stroke: #000000;
+        stroke-dasharray: none;
+        stroke-dashoffset: 0;
+        stroke-width: 0.3;
+        stroke-opacity: 1.0;
+    }
+    path.convex {
+        stroke: #000000;
+        stroke-dasharray: 0.50,1.00;
+        stroke-dashoffset:0;
+        stroke-width:0.2;
+        stroke-opacity: 1.0
+    }
+    path.concave {
+        stroke: #000000;
+        stroke-dasharray: 1.00,0.50,0.20,0.50;
+        stroke-dashoffset: 0;
+        stroke-width: 0.2;
+        stroke-opacity: 1.0
+    }
+    path.freestyle {
+        stroke: #000000;
+        stroke-dasharray: none;
+        stroke-dashoffset: 0;
+        stroke-width: 0.2;
+        stroke-opacity: 1.0
+    }
+    path.outer_background {
+        stroke: #ffffff;
+        stroke-opacity: 1.0;
+        stroke-width: 0.5
+    }
+    path.inner_background {
+        stroke: #ffffff;
+        stroke-opacity: 1.0;
+        stroke-width: 0.2
+    }
+    path.sticker {
+        fill: #e5e5e5;
+        stroke: none;
+        fill-opacity: 1.0;
+    }
+    path.arrow {
+        fill: #000000;
+    }
+    text {
+        font-style: normal;
+        fill: #000000;
+        fill-opacity: 1.0;
+        stroke: none;
+    }
+    text, tspan {
+        text-anchor:middle;
+    }
+    </style>
+    
 </head>
 <body id="body">
     
@@ -110,15 +175,22 @@
                     <label for="polygon">Polygon</label>
                 </row>
                 <button id="generate">Generate</button>
+                <button id="print">Print</button>
             </div>
         </div>
-        <div class="output">
+        <div class="output" id="output">
+            <!-- <img id="outputImage" src="./cube.svg" alt="Output Image"> -->
+            <object id="outputImage" data="./cube.svg" type="image/svg+xml" alt="Output Image">
             <div id="outputSpinner" class="spinner"></div>
-            <img id="outputImage" src="./cube.png" alt="Output Image">
         </div>
         <canvas id="outputCanvas" ></canvas>
 
+
+
+
     <script>
+
+
         const textureUpload = document.getElementById('textureUpload');
         const outputCanvas = document.getElementById('outputCanvas');
         const ctx = outputCanvas.getContext('2d',{ willReadFrequently: true });
@@ -129,6 +201,10 @@
         const outputImgTag = document.getElementById('outputImage');
 
         let generatedImage = false;
+
+        const outputImage = new Image();
+        const referenceImage = new Image();
+
 
         textureUpload.addEventListener('change', function(event) {
             const file = event.target.files[0];
@@ -166,7 +242,6 @@
             outspinner.style.display = 'block';
             outputImgTag.style.display = 'none';
 
-            const referenceImage = new Image();
             referenceImage.onload = function() {
                 outputCanvas.width = referenceImage.width;
                 outputCanvas.height = referenceImage.height;
@@ -220,40 +295,73 @@
                 ctx.putImageData(outputImageData, 0, 0);
                 
                 // set the output image to the processed image
-                outputImgTag.src = outputCanvas.toDataURL();
+                // outputImage.src = outputCanvas.toDataURL();
+                setOuputImage();
                 outputImgTag.style.display = 'block';
                 outspinner.style.display = 'none';
                 generatedImage = true;
 
             };
 
-            // Set the reference image source based on the selected radio button
-            const cubeRadio = document.getElementById('cube');
-            const polygonRadio = document.getElementById('polygon');
 
             if (cubeRadio.checked) {
-                referenceImage.src = './cube.png'; // Ensure the correct path
+                referenceImage.src = './cube/island0.png'; // Ensure the correct path
             } else if (polygonRadio.checked) {
-                referenceImage.src = './polygon.png'; // Ensure the correct path
+                referenceImage.src = './polygon/island0.png'; // Ensure the correct path
             }
         }
         // add an event listener to the cube radio button
         const cubeRadio = document.getElementById('cube');
         cubeRadio.addEventListener('change', function() {
-            if (!generatedImage) {
-                outputImgTag.src = './cube.png';
-            }
+            // if (!generatedImage) {
+                outputImgTag.data = './cube.svg';
+                referenceImage.src = './cube/island0.png';
+            // }
 
         });
 
         // add an event listener to the polygon radio button
         const polygonRadio = document.getElementById('polygon');
         polygonRadio.addEventListener('change', function() {
-            if (!generatedImage) {
-                outputImgTag.src = './polygon.png';
-            }
+            // if (!generatedImage) {
+                outputImgTag.data = './polygon.svg';
+                referenceImage.src = './polygon/island0.png';
+            // }
         });
+        
+        function setOuputImage(){            
+            const svgDoc = outputImgTag.contentDocument;
 
+            // Now you can manipulate the SVG
+            // For example, change the fill color of all paths to red
+            const images = svgDoc.querySelectorAll('image');
+            images.forEach(image => {
+                console.log(image);
+                //set the image href to the output image
+                image.setAttribute('href', outputCanvas.toDataURL());
+            });
+        }
+
+        // add an event listener to the print button
+        const printButton = document.getElementById('print');
+        printButton.addEventListener('click', function() {
+            printSVG();
+        });
+        function printSVG(){
+            // print out the object element
+            const svgDoc = outputImgTag.contentDocument;
+            const svg = svgDoc.querySelector('svg');
+
+            // Create a new window
+            const printWindow = window.open('', '_blank');
+            printWindow.document.open();
+            printWindow.document.write('<html><head><title>Print</title></head><body>');
+            printWindow.document.write(svg.outerHTML);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print()
+            
+        }
 
     </script>
 </body>
