@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Equarectangular img to net</title>
     <style>
+        /* I am not great at CSS, sorry! */
+        #body {
+            font-family: Arial, sans-serif;
+            margin: auto;
+            padding: 0;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+        }
         canvas {
             border: 1px solid black;
         }
@@ -32,18 +41,19 @@
             display: flex;
             flex-direction: column;
             justify-content: start;
-            align-items: start;}
+            align-items: center;}
         .output { grid-area: 2 / 3 / 3 / 4;
             display: flex;
             flex-direction: column;
             justify-content: start;
             align-items: start; }
 
-        .row{
+        #control-wrapper{
             display: flex;
-            flex-direction: row;
-            margin-bottom: 5px;;
+            flex-direction: column;
+            align-items: flex-start;
         }
+
         #outputImage {
             width: 100%;
             height: 100%;
@@ -75,8 +85,8 @@
         }
     </style>
 </head>
-<body>
-
+<body id="body">
+    
     <div class="header">
         <h1>Equarec2Net</h1>
         <p>Convert equirectangular images to a net that you can cut, fold, and make into a little physical thing!</p>
@@ -90,19 +100,21 @@
             <img id="inputImage" src="" alt="Input Image" style="display: none;">
         </div>
         <div class="controls" id="convert-controls">
-            <row>
-                <input type="radio" id="cube" name="reference" value="cube" checked>
-                <label for="cube">Cube</label>
-            </row>
-            <row>
-                <input type="radio" id="polygon" name="reference" value="polygon">
-                <label for="polygon">Polygon</label>
-            </row>
-            <button id="generate">Generate</button>
+            <div id="control-wrapper">
+                <row>
+                    <input type="radio" id="cube" name="reference" value="cube" checked>
+                    <label for="cube">Cube</label>
+                </row>
+                <row>
+                    <input type="radio" id="polygon" name="reference" value="polygon">
+                    <label for="polygon">Polygon</label>
+                </row>
+                <button id="generate">Generate</button>
+            </div>
         </div>
         <div class="output">
             <div id="outputSpinner" class="spinner"></div>
-            <img id="outputImage" src="./cube.png" alt="Output Image">
+            <img id="outputImage" src="./cube/island0.png" alt="Output Image">
         </div>
         <canvas id="outputCanvas" ></canvas>
 
@@ -116,9 +128,7 @@
         const inputImgTag = document.getElementById('inputImage');
         const outputImgTag = document.getElementById('outputImage');
 
-
-
-
+        let generatedImage = false;
 
         textureUpload.addEventListener('change', function(event) {
             const file = event.target.files[0];
@@ -213,6 +223,7 @@
                 outputImgTag.src = outputCanvas.toDataURL();
                 outputImgTag.style.display = 'block';
                 outspinner.style.display = 'none';
+                generatedImage = true;
 
             };
 
@@ -221,11 +232,27 @@
             const polygonRadio = document.getElementById('polygon');
 
             if (cubeRadio.checked) {
-                referenceImage.src = './cube.png'; // Ensure the correct path
+                referenceImage.src = './cube/island0.png'; // Ensure the correct path
             } else if (polygonRadio.checked) {
-                referenceImage.src = './polygon.png'; // Ensure the correct path
+                referenceImage.src = './polygon/island0.png'; // Ensure the correct path
             }
         }
+        // add an event listener to the cube radio button
+        const cubeRadio = document.getElementById('cube');
+        cubeRadio.addEventListener('change', function() {
+            if (!generatedImage) {
+                outputImgTag.src = './cube/island0.png';
+            }
+
+        });
+
+        // add an event listener to the polygon radio button
+        const polygonRadio = document.getElementById('polygon');
+        polygonRadio.addEventListener('change', function() {
+            if (!generatedImage) {
+                outputImgTag.src = './polygon/island0.png';
+            }
+        });
 
 
     </script>
