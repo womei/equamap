@@ -261,6 +261,16 @@
                     let r = refImageData.data[i]; // Red channel
                     let g = refImageData.data[i + 1]; // Green channel
                     let b = refImageData.data[i + 2]; // Blue channel
+                    let a = refImageData.data[i + 3]; // Alpha channel
+
+                    if (a === 0) {
+                        // Skip transparent pixel
+                        outputImageData.data[i] = 0
+                        outputImageData.data[i + 1] =0
+                        outputImageData.data[i + 2] = 0
+                        outputImageData.data[i + 3] = 0
+                        continue;
+                    }
 
                     const highBitsX = r >> 4; // Top 4 bits of red channel
                     const highBitsY = r & 0x0F; // Lower 4 bits of red channel
@@ -284,8 +294,11 @@
                         outputImageData.data[i] = textureData.data[index]; // Red
                         outputImageData.data[i + 1] = textureData.data[index + 1]; // Green
                         outputImageData.data[i + 2] = textureData.data[index + 2]; // Blue
-                        outputImageData.data[i + 3] = 255; // Alpha (fully opaque)
+                        outputImageData.data[i + 3] = textureData.data[index + 3]; // Alpha (fully opaque)
                     } else {
+                        outputImageData.data[i] = 0; // Set pixel to black if out of bounds
+                        outputImageData.data[i + 1] = 0; // Set pixel to black if out of bounds
+                        outputImageData.data[i + 2] = 0; // Set pixel to black if out of bounds
                         outputImageData.data[i + 3] = 0; // Set pixel to transparent if out of bounds
                     }
                 }
@@ -355,7 +368,11 @@
             // Create a new window
             const printWindow = window.open('', '_blank');
             printWindow.document.open();
-            printWindow.document.write('<html><head><title>Print</title></head><body>');
+            printWindow.document.write('<html><head><title>Print</title>');
+                printWindow.document.write('<style>@media print { svg { width: 210mm; height: 297mm; } }</style>');
+            printWindow.document.write('</head><body>');
+            
+            
             printWindow.document.write(svg.outerHTML);
             printWindow.document.write('</body></html>');
             printWindow.document.close();
